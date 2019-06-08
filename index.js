@@ -1,7 +1,7 @@
 var fs = require('fs');
 
 exports.printMsg = function() {
-	console.log('This comes from amiautodoc-parser plugin. Test 2');
+	// console.log('This comes from amiautodoc-parser plugin. Test 2');
 }
 
 function trim(string) {
@@ -10,10 +10,21 @@ function trim(string) {
 
 var AmiAutoDoc = function () {
 	this.contents = [];
-	this.methods = [];
+	this.methods = {};
 	// this.headers = {};
 	// this.headerOrder = [];
 	// this.items = [];
+};
+
+var METHOD = function () {
+	this.name = '';
+	this.function = '';
+	this.seealso = '';
+	this.example = '';
+	this.notes = '';
+	this.spinputs = '';
+	this.inputs = '';
+	this.intro = '';
 };
 
 AmiAutoDoc.load = function (filename, callback) {
@@ -23,7 +34,10 @@ AmiAutoDoc.load = function (filename, callback) {
 					// return callback(err);
 			}
 			var amiautodoc = AmiAutoDoc.parse(data);
-			// callback(null, amiautodoc);
+
+			callback(null, amiautodoc);
+			// TODO: Maybe add an option to return JSON
+			// callback(null, JSON.stringify(amiautodoc));
 	});
 };
 
@@ -32,23 +46,25 @@ AmiAutoDoc.parse = function (data) {
 	data = data.replace(/\r\n/g, '\n');
 	// console.log('DATA ===========================');
 	// console.log(data);
+	var amiautodoc = new AmiAutoDoc();
 
 	var contents = [];
 	var methods = [];
 
 	var contentsMode = false;
 	var methodsMode = false;
+	var mode = '';
 
 	var lines = data.split(/\n/);
 	var lineNum = 0;
 	var curMethod = '';
-	var prvMethod = '';
-	console.log('LINES: ' + lines.length);
+
+	// console.log('LINES: ' + lines.length);
 	while (lines.length > 0) {
 		var line = trim(lines.shift());
 		if ((lineNum == 0) && (line != 'TABLE OF CONTENTS')) {
 			console.log('ERROR: This is not an Amiga AutoDoc file.')
-			// TODO: return error here
+			return 'ERROR';
 		}
 
 		if ((lineNum == 0) && (line == 'TABLE OF CONTENTS')) {
@@ -57,32 +73,93 @@ AmiAutoDoc.parse = function (data) {
 			contentsMode = true;
 		}
 
-		if (line != '') {
-			// TODO: This is not going to work for AmigaOS 4 SDK autodocs because when the methods section starts the method name is written twice in the same line.
-			if (contentsMode && (contents.indexOf(line) > -1)) {
-				// console.log('Method found in contents: ' + line);
-				contentsMode = false;
-				methodsMode = true;
-			}
+		// TODO: This is not going to work for AmigaOS 4 SDK autodocs because when the methods section starts the method name is written twice in the same line.
+		if (contentsMode && (contents.indexOf(line) > -1)) {
+			// console.log('Method found in contents: ' + line);
+			contentsMode = false;
+			methodsMode = true;
+		}
 
 
-			if (contentsMode) {
+		if (contentsMode) {
+			if (line != '') {
 				contents.push(line);
 			}
-			if (methodsMode) {
-				if (contents.indexOf(line) > -1) {
-					curMethod = line;
+		}
+		if (methodsMode) {
+			if (contents.indexOf(line) > -1) {
+				if (typeof newMethod !== 'undefined') {
+					// console.log(newMethod);
+					// methods.push(newMethod);
+					methods[curMethod] = newMethod;
 				}
 
+				curMethod = line;
+				// methods.push(line);
+				var newMethod = new METHOD;
+			} else {
+				var addContent = true;
+				switch (line) {
+					case 'NAME':
+						mode = 'name';
+						addContent = false;
+						break;
+					case 'FUNCTION':
+						mode = 'function';
+						addContent = false;
+						break;
+					case 'SEE ALSO':
+						mode = 'seealso';
+						addContent = false;
+						break;
+					case 'EXAMPLE':
+						mode = 'example';
+						addContent = false;
+						break;
+					case 'NOTES':
+						mode = 'notes';
+						addContent = false;
+						break;
+					case 'SPECIAL INPUTS':
+						mode = 'spinputs';
+						addContent = false;
+						break;
+					case 'INPUTS':
+						mode = 'inputs';
+						addContent = false;
+						break;
+					default:
+						if (mode == '') {
+							mode = 'intro';
+							addContent = false;
+						}
+				}
+				if (addContent) {
+					newMethod[mode] += line;
+					newMethod[mode] += ' ';
+				}
 			}
 		}
-		console.log(lineNum);
-		console.log(line);
+		// console.log(lineNum);
+		// console.log(line);
 		lineNum++;
 	}
 
-	console.log('CONTENTS ===================');
-	console.log(contents);
+	if (typeof newMethod !== 'undefined') {
+		// console.log(newMethod);
+		// methods.push(newMethod);
+		methods[curMethod] = newMethod;
+	}
+
+	amiautodoc.contents = contents;
+	amiautodoc.methods = methods;
+	// console.log('CONTENTS ===================');
+	// console.log(contents);
+
+	// console.log('METHODS ===================');
+	// console.log(methods);
+
+	return amiautodoc;
 }
 
 
