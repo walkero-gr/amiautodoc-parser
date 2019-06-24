@@ -25,6 +25,9 @@ var METHOD = function () {
 	this.spinputs = '';
 	this.inputs = '';
 	this.intro = '';
+	this.purpose = '';
+	this.synopsis = '';
+	this.result = '';
 };
 
 AmiAutoDoc.load = function (filename, callback) {
@@ -61,7 +64,9 @@ AmiAutoDoc.parse = function (data) {
 
 	// console.log('LINES: ' + lines.length);
 	while (lines.length > 0) {
-		var line = trim(lines.shift());
+		var origLine = lines.shift();
+		var origLineNT = origLine.replace('\t','');
+		var line = trim(origLine);
 		if ((lineNum == 0) && (line != 'TABLE OF CONTENTS')) {
 			console.log('ERROR: This is not an Amiga AutoDoc file.')
 			return 'ERROR';
@@ -74,12 +79,13 @@ AmiAutoDoc.parse = function (data) {
 		}
 
 		// TODO: This is not going to work for AmigaOS 4 SDK autodocs because when the methods section starts the method name is written twice in the same line.
-		if (contentsMode && (contents.indexOf(line) > -1)) {
+		var lineStart = line.split(' ')[0];
+		// console.log(lineStart);
+		if (contentsMode && (contents.indexOf(lineStart) > -1)) {
 			// console.log('Method found in contents: ' + line);
 			contentsMode = false;
 			methodsMode = true;
 		}
-
 
 		if (contentsMode) {
 			if (line != '') {
@@ -87,56 +93,79 @@ AmiAutoDoc.parse = function (data) {
 			}
 		}
 		if (methodsMode) {
-			if (contents.indexOf(line) > -1) {
+			if (contents.indexOf(lineStart) > -1) {
 				if (typeof newMethod !== 'undefined') {
 					// console.log(newMethod);
 					// methods.push(newMethod);
 					methods[curMethod] = newMethod;
 				}
 
-				curMethod = line;
+				curMethod = lineStart;
 				// methods.push(line);
 				var newMethod = new METHOD;
-			} else {
-				var addContent = true;
-				switch (line) {
-					case 'NAME':
-						mode = 'name';
+			}
+			var addContent = true;
+			switch (line) {
+				case 'NAME':
+					mode = 'name';
+					addContent = false;
+					break;
+				case 'FUNCTION':
+					mode = 'function';
+					addContent = false;
+					break;
+				case 'SEE ALSO':
+					mode = 'seealso';
+					addContent = false;
+					break;
+				case 'EXAMPLE':
+					mode = 'example';
+					addContent = false;
+					break;
+				case 'NOTES':
+					mode = 'notes';
+					addContent = false;
+					break;
+				case 'SPECIAL INPUTS':
+					mode = 'spinputs';
+					addContent = false;
+					break;
+				case 'INPUTS':
+					mode = 'inputs';
+					addContent = false;
+					break;
+				case 'PURPOSE':
+					mode = 'purpose';
+					addContent = false;
+					break;
+				case 'SYNOPSIS':
+					mode = 'synopsis';
+					addContent = false;
+					break;
+				case 'RESULT':
+					mode = 'result';
+					addContent = false;
+					break;
+				default:
+					if (mode == '') {
+						mode = 'intro';
 						addContent = false;
-						break;
-					case 'FUNCTION':
-						mode = 'function';
-						addContent = false;
-						break;
-					case 'SEE ALSO':
-						mode = 'seealso';
-						addContent = false;
-						break;
-					case 'EXAMPLE':
-						mode = 'example';
-						addContent = false;
-						break;
-					case 'NOTES':
-						mode = 'notes';
-						addContent = false;
-						break;
-					case 'SPECIAL INPUTS':
-						mode = 'spinputs';
-						addContent = false;
-						break;
-					case 'INPUTS':
-						mode = 'inputs';
-						addContent = false;
+					}
+			}
+			if (line == curMethod) {
+				addContent = false;
+			}
+			if (addContent) {
+				// newMethod[mode] += origLineNT;
+				// newMethod[mode] += '\n';
+				switch(mode) {
+					case 'example':
+							newMethod[mode] += origLineNT;
+							newMethod[mode] += '\n';
 						break;
 					default:
-						if (mode == '') {
-							mode = 'intro';
-							addContent = false;
-						}
-				}
-				if (addContent) {
-					newMethod[mode] += line;
-					newMethod[mode] += ' ';
+							newMethod[mode] += line;
+							newMethod[mode] += '\n';
 				}
 			}
 		}
