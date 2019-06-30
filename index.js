@@ -28,6 +28,14 @@ var METHOD = function () {
 	this.purpose = '';
 	this.synopsis = '';
 	this.result = '';
+	this.superclass = '';
+	this.requires = '';
+	this.description = '';
+	this.renderingHookInterface = '';
+	this.stylePluginInterface = '';
+	this.geometryHookInterface = '';
+	this.methods = '';
+	this.attributes = '';
 };
 
 AmiAutoDoc.load = function (filename, callback) {
@@ -78,7 +86,7 @@ AmiAutoDoc.parse = function (data) {
 			contentsMode = true;
 		}
 
-		// TODO: This is not going to work for AmigaOS 4 SDK autodocs because when the methods section starts the method name is written twice in the same line.
+		// TODO: Change this to a more clever way, by searching in the line for a method
 		var lineStart = line.split(' ')[0];
 		// console.log(lineStart);
 		if (contentsMode && (contents.indexOf(lineStart) > -1)) {
@@ -144,6 +152,38 @@ AmiAutoDoc.parse = function (data) {
 					break;
 				case 'RESULT':
 					mode = 'result';
+					addContent = false;
+					break;
+				case 'SUPERCLASS':
+					mode = 'superclass';
+					addContent = false;
+					break;
+				case 'REQUIRES':
+					mode = 'requires';
+					addContent = false;
+					break;
+				case 'DESCRIPTION':
+					mode = 'description';
+					addContent = false;
+					break;
+				case 'RENDERING HOOK INTERFACE':
+					mode = 'renderingHookInterface';
+					addContent = false;
+					break;
+				case 'STYLE PLUGIN INTERFACE':
+					mode = 'stylePluginInterface';
+					addContent = false;
+					break;
+				case 'GEOMETRY HOOK INTERFACE':
+					mode = 'geometryHookInterface';
+					addContent = false;
+					break;
+				case 'METHODS':
+					mode = 'methods';
+					addContent = false;
+					break;
+				case 'ATTRIBUTES':
+					mode = 'attributes';
 					addContent = false;
 					break;
 				default:
